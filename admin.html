@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LTW 管理パネル</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@300;400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root { --black:#0a0a0a; --white:#fff; --gray-light:#f4f4f4; --gray-mid:#e0e0e0; --gray-dark:#888; --border:#d0d0d0; --red:#cc0000; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--gray-light); color:var(--black); font-family:'Noto Sans JP',sans-serif; min-height:100vh; }
+  #login-screen { position:fixed; inset:0; background:var(--white); z-index:9999; display:flex; align-items:center; justify-content:center; }
+  .login-box { width:100%; max-width:400px; padding:48px 40px; border:2px solid var(--black); }
+  .login-title { font-family:'Bebas Neue',sans-serif; font-size:2.5rem; letter-spacing:0.05em; margin-bottom:4px; }
+  .login-sub { font-family:'Share Tech Mono',monospace; font-size:0.65rem; letter-spacing:0.2em; color:var(--gray-dark); margin-bottom:32px; text-transform:uppercase; }
+  .login-label { font-family:'Share Tech Mono',monospace; font-size:0.6rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--gray-dark); display:block; margin-bottom:6px; }
+  .login-input { width:100%; border:1.5px solid var(--black); padding:12px 16px; font-family:'Noto Sans JP',sans-serif; font-size:1rem; outline:none; margin-bottom:12px; }
+  .login-error { font-family:'Share Tech Mono',monospace; font-size:0.65rem; color:var(--red); letter-spacing:0.1em; margin-bottom:12px; display:none; }
+  .login-btn { width:100%; background:var(--black); color:var(--white); border:none; padding:14px; font-family:'Share Tech Mono',monospace; font-size:0.75rem; letter-spacing:0.2em; text-transform:uppercase; cursor:pointer; }
+  #main-app { display:none; }
+  header { background:var(--white); border-bottom:1.5px solid var(--black); padding:0 5vw; height:64px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+  .header-logo { font-family:'Bebas Neue',sans-serif; font-size:1.5rem; letter-spacing:0.1em; }
+  .header-logo span { font-family:'Share Tech Mono',monospace; font-size:0.6rem; color:var(--gray-dark); margin-left:12px; vertical-align:middle; letter-spacing:0.15em; }
+  .header-actions { display:flex; gap:10px; }
+  .btn { font-family:'Share Tech Mono',monospace; font-size:0.65rem; letter-spacing:0.15em; text-transform:uppercase; padding:10px 20px; border:1.5px solid var(--black); background:transparent; color:var(--black); cursor:pointer; transition:all 0.2s; }
+  .btn:hover { background:var(--black); color:var(--white); }
+  .btn.primary { background:var(--black); color:var(--white); }
+  .container { max-width:1200px; margin:0 auto; padding:40px 5vw; }
+  .tabs { display:flex; border-bottom:1.5px solid var(--black); margin-bottom:32px; }
+  .tab-btn { font-family:'Share Tech Mono',monospace; font-size:0.7rem; letter-spacing:0.15em; text-transform:uppercase; padding:12px 24px; border:none; background:transparent; color:var(--gray-dark); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1.5px; transition:all 0.2s; }
+  .tab-btn.active { color:var(--black); border-bottom-color:var(--black); }
+  .card { background:var(--white); border:1px solid var(--border); padding:32px; margin-bottom:24px; }
+  .card-title { font-family:'Bebas Neue',sans-serif; font-size:1.6rem; letter-spacing:0.05em; margin-bottom:20px; display:flex; align-items:center; gap:12px; }
+  .card-title span { font-family:'Share Tech Mono',monospace; font-size:0.6rem; color:var(--gray-dark); font-weight:normal; letter-spacing:0.15em; }
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .form-group { display:flex; flex-direction:column; gap:6px; }
+  .form-group.full { grid-column:1/-1; }
+  .form-label { font-family:'Share Tech Mono',monospace; font-size:0.6rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--gray-dark); }
+  .form-input,.form-select,.form-textarea { border:1.5px solid var(--black); padding:10px 14px; font-family:'Noto Sans JP',sans-serif; font-size:0.85rem; background:var(--white); outline:none; width:100%; }
+  .form-textarea { resize:vertical; min-height:80px; }
+  .img-upload-area { border:2px dashed var(--border); padding:28px; text-align:center; cursor:pointer; position:relative; background:var(--gray-light); transition:all 0.2s; }
+  .img-upload-area:hover { border-color:var(--black); background:var(--white); }
+  .img-upload-area input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+  .img-upload-text { font-family:'Share Tech Mono',monospace; font-size:0.7rem; letter-spacing:0.15em; color:var(--gray-dark); text-transform:uppercase; line-height:2; }
+  .img-preview { width:100%; max-height:200px; object-fit:cover; display:none; margin-top:12px; border:1px solid var(--border); }
+  .stats-row { display:flex; gap:16px; margin-bottom:32px; flex-wrap:wrap; }
+  .stat-card { background:var(--white); border:1px solid var(--border); padding:20px 28px; flex:1; min-width:120px; }
+  .stat-card-num { font-family:'Bebas Neue',sans-serif; font-size:2.5rem; line-height:1; }
+  .stat-card-label { font-family:'Share Tech Mono',monospace; font-size:0.6rem; letter-spacing:0.2em; color:var(--gray-dark); text-transform:uppercase; margin-top:4px; }
+  .notice { background:#fffbe6; border:1px solid #e0c800; padding:16px 20px; font-family:'Share Tech Mono',monospace; font-size:0.7rem; letter-spacing:0.1em; color:#555; margin-bottom:24px; line-height:2; }
+  .notice strong { color:var(--black); }
+  .member-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; margin-top:16px; }
+  .member-item { background:var(--white); border:1px solid var(--border); display:flex; gap:16px; align-items:center; padding:16px; }
+  .member-thumb { width:56px; height:56px; background:var(--gray-mid); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue',sans-serif; font-size:1.6rem; color:var(--gray-dark); overflow:hidden; }
+  .member-thumb img { width:56px; height:56px; object-fit:cover; }
+  .member-info { flex:1; min-width:0; }
+  .member-ign { font-family:'Bebas Neue',sans-serif; font-size:1.1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .member-role-badge { font-family:'Share Tech Mono',monospace; font-size:0.6rem; color:var(--gray-dark); text-transform:uppercase; }
+  .member-actions { display:flex; gap:6px; flex-shrink:0; }
+  .icon-btn { width:32px; height:32px; border:1px solid var(--border); background:none; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; font-size:0.85rem; }
+  .icon-btn:hover { background:var(--black); color:var(--white); border-color:var(--black); }
+  .icon-btn.del:hover { background:var(--red); border-color:var(--red); }
+  .search-input { width:100%; border:1.5px solid var(--black); padding:10px 16px; font-family:'Noto Sans JP',sans-serif; font-size:0.85rem; outline:none; margin-bottom:16px; }
+  .empty-msg { text-align:center; padding:60px 20px; font-family:'Share Tech Mono',monospace; font-size:0.7rem; color:var(--gray-dark); letter-spacing:0.2em; }
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(100px); background:var(--black); color:var(--white); font-family:'Share Tech Mono',monospace; font-size:0.7rem; letter-spacing:0.15em; padding:12px 28px; z-index:9999; transition:transform 0.3s; pointer-events:none; white-space:nowrap; }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+  @media(max-width:600px){.form-grid{grid-template-columns:1fr}.form-group.full{grid-column:1}}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-title">LTW ADMIN</div>
+    <div class="login-sub">Learn To Win — 管理パネル</div>
+    <label class="login-label">パスワード</label>
+    <input type="password" id="pw-input" class="login-input" placeholder="パスワードを入力...">
+    <div class="login-error" id="login-error">✕ パスワードが違います</div>
+    <button class="login-btn" onclick="login()">ログイン →</button>
+  </div>
+</div>
+
+<div id="main-app">
+  <header>
+    <div class="header-logo">LTW ADMIN <span>LEARN TO WIN</span></div>
+    <div class="header-actions">
+      <button class="btn primary" onclick="exportSite()">⬇ index.html を出力</button>
+      <button class="btn" onclick="logout()">ログアウト</button>
+    </div>
+  </header>
+  <div class="container">
+    <div class="notice">
+      <strong>📌 使い方：</strong> メンバーを追加・編集 → 「⬇ index.html を出力」ボタン → ダウンロードされた index.html を GitHub に上書きアップロードすると公開サイトに反映されます！
+    </div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-card-num" id="s-total">0</div><div class="stat-card-label">総メンバー数</div></div>
+      <div class="stat-card"><div class="stat-card-num" id="s-owner">0</div><div class="stat-card-label">OWNER</div></div>
+      <div class="stat-card"><div class="stat-card-num" id="s-staff">0</div><div class="stat-card-label">STAFF</div></div>
+      <div class="stat-card"><div class="stat-card-num" id="s-comp">0</div><div class="stat-card-label">競技</div></div>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('add')">＋ メンバー追加</button>
+      <button class="tab-btn" onclick="switchTab('list')">👥 メンバー一覧</button>
+      <button class="tab-btn" onclick="switchTab('settings')">⚙ サイト設定</button>
+    </div>
+    <div id="tab-add">
+      <div class="card">
+        <div class="card-title">メンバーを追加 <span id="form-mode-label">NEW</span></div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">ゲーム名（IGN）*</label>
+            <input type="text" id="f-ign" class="form-input" placeholder="例: ProPlayer123">
+          </div>
+          <div class="form-group">
+            <label class="form-label">本名</label>
+            <input type="text" id="f-realname" class="form-input" placeholder="例: 山田 太郎">
+          </div>
+          <div class="form-group">
+            <label class="form-label">ロール</label>
+            <select id="f-role" class="form-select">
+              <option value="OWNER">OWNER</option>
+              <option value="STAFF">STAFF</option>
+              <option value="競技">競技</option>
+              <option value="育成">育成</option>
+              <option value="CS">CS</option>
+              <option value="モバイル">モバイル</option>
+              <option value="STREAMER">STREAMER</option>
+              <option value="女子">女子</option>
+              <option value="DESIGNER">DESIGNER</option>
+              <option value="EDITOR">EDITOR</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">X（旧Twitter）URL</label>
+            <input type="url" id="f-twitter" class="form-input" placeholder="https://x.com/username">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">メンバー画像（スマホ・PCから直接アップロード可）</label>
+            <div class="img-upload-area">
+              <input type="file" id="f-img-file" accept="image/*" onchange="handleImageUpload(event)">
+              <div class="img-upload-text" id="upload-text">📷 タップ / クリックして画像を選択<br><span style="font-size:0.6rem;opacity:0.6;letter-spacing:0.1em">JPG / PNG / WEBP 対応</span></div>
+              <img id="img-preview" class="img-preview" alt="プレビュー">
+            </div>
+            <input type="hidden" id="f-img-data">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">プロフィール</label>
+            <textarea id="f-bio" class="form-textarea" placeholder="メンバーの紹介文を入力..."></textarea>
+          </div>
+        </div>
+        <input type="hidden" id="edit-index" value="-1">
+        <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">
+          <button class="btn primary" onclick="saveMember()" id="save-btn">＋ 追加する</button>
+          <button class="btn" onclick="clearForm()" id="cancel-btn" style="display:none">キャンセル</button>
+        </div>
+      </div>
+    </div>
+    <div id="tab-list" style="display:none">
+      <div class="card">
+        <div class="card-title">メンバー一覧 <span id="count-label">0 / 50</span></div>
+        <input type="text" class="search-input" placeholder="名前で検索..." oninput="renderList(this.value)">
+        <div class="member-list" id="member-list"></div>
+      </div>
+    </div>
+    <div id="tab-settings" style="display:none">
+      <div class="card">
+        <div class="card-title">サイト設定</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">設立年</label>
+            <input type="text" id="s-founded" class="form-input" placeholder="2024">
+          </div>
+          <div class="form-group">
+            <label class="form-label">拠点</label>
+            <input type="text" id="s-region" class="form-input" placeholder="JP">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">タグライン</label>
+            <input type="text" id="s-tagline" class="form-input">
+          </div>
+        </div>
+        <button class="btn primary" style="margin-top:20px" onclick="saveSettings()">✓ 設定を保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const PASSWORD = 'LTWshion1007';
+document.getElementById('pw-input').addEventListener('keydown', e => { if(e.key==='Enter') login(); });
+
+function login() {
+  if (document.getElementById('pw-input').value === PASSWORD) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-app').style.display = 'block';
+    loadSettings(); renderStats(); renderList();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+    document.getElementById('pw-input').value = '';
+  }
+}
+function logout() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('pw-input').value = '';
+}
+
+let members = JSON.parse(localStorage.getItem('ltw_members') || '[]');
+let siteSettings = JSON.parse(localStorage.getItem('ltw_settings') || '{"founded":"2024","region":"JP","tagline":"// 勝利を学べ、勝利を掴め — Fortnite Competitive Team"}');
+function saveMembers() { localStorage.setItem('ltw_members', JSON.stringify(members)); }
+function saveSettingsStore() { localStorage.setItem('ltw_settings', JSON.stringify(siteSettings)); }
+
+function switchTab(name) {
+  ['add','list','settings'].forEach((t,i) => {
+    document.getElementById('tab-'+t).style.display = t===name?'block':'none';
+    document.querySelectorAll('.tab-btn')[i].classList.toggle('active', t===name);
+  });
+  if(name==='list') renderList();
+}
+
+function handleImageUpload(e) {
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('f-img-data').value = ev.target.result;
+    const p = document.getElementById('img-preview');
+    p.src = ev.target.result; p.style.display = 'block';
+    document.getElementById('upload-text').textContent = '✓ 画像が選択されました';
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveMember() {
+  const ign = document.getElementById('f-ign').value.trim();
+  if (!ign) { showToast('ゲーム名は必須です'); return; }
+  const idx = parseInt(document.getElementById('edit-index').value);
+  if (idx < 0 && members.length >= 50) { showToast('上限50人です'); return; }
+  const m = {
+    ign, realname: document.getElementById('f-realname').value.trim(),
+    role: document.getElementById('f-role').value,
+    twitter: document.getElementById('f-twitter').value.trim(),
+    img: document.getElementById('f-img-data').value,
+    bio: document.getElementById('f-bio').value.trim()
+  };
+  if (idx >= 0) { members[idx] = m; showToast('✓ 更新しました'); }
+  else { members.push(m); showToast('✓ 追加しました'); }
+  saveMembers(); clearForm(); renderStats(); renderList();
+}
+
+function clearForm() {
+  ['f-ign','f-realname','f-twitter','f-bio'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('f-role').value = 'OWNER';
+  document.getElementById('f-img-data').value = '';
+  document.getElementById('f-img-file').value = '';
+  document.getElementById('img-preview').style.display = 'none';
+  document.getElementById('upload-text').innerHTML = '📷 タップ / クリックして画像を選択<br><span style="font-size:0.6rem;opacity:0.6;letter-spacing:0.1em">JPG / PNG / WEBP 対応</span>';
+  document.getElementById('edit-index').value = '-1';
+  document.getElementById('save-btn').textContent = '＋ 追加する';
+  document.getElementById('cancel-btn').style.display = 'none';
+  document.getElementById('form-mode-label').textContent = 'NEW';
+}
+
+function editMember(i) {
+  const m = members[i];
+  document.getElementById('f-ign').value = m.ign||'';
+  document.getElementById('f-realname').value = m.realname||'';
+  document.getElementById('f-role').value = m.role||'OWNER';
+  document.getElementById('f-twitter').value = m.twitter||'';
+  document.getElementById('f-bio').value = m.bio||'';
+  document.getElementById('f-img-data').value = m.img||'';
+  if(m.img){ const p=document.getElementById('img-preview'); p.src=m.img; p.style.display='block'; document.getElementById('upload-text').textContent='✓ 画像設定済み'; }
+  document.getElementById('edit-index').value = i;
+  document.getElementById('save-btn').textContent = '✓ 更新する';
+  document.getElementById('cancel-btn').style.display = 'inline-block';
+  document.getElementById('form-mode-label').textContent = 'EDIT';
+  switchTab('add'); window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function deleteMember(i) {
+  if(!confirm('「'+members[i].ign+'」を削除しますか？')) return;
+  members.splice(i,1); saveMembers(); renderStats(); renderList(); showToast('✓ 削除しました');
+}
+
+function renderList(q='') {
+  document.getElementById('count-label').textContent = members.length+' / 50';
+  const fil = q ? members.filter(m=>(m.ign+' '+(m.realname||'')).toLowerCase().includes(q.toLowerCase())) : members;
+  const list = document.getElementById('member-list');
+  if(!fil.length){ list.innerHTML='<div class="empty-msg">メンバーがいません</div>'; return; }
+  list.innerHTML = fil.map(m => {
+    const i = members.indexOf(m);
+    const initial = (m.ign||'?').charAt(0).toUpperCase();
+    return '<div class="member-item">'
+      +'<div class="member-thumb">'+(m.img?'<img src="'+m.img+'" onerror="this.parentElement.textContent=''+initial+''">':initial)+'</div>'
+      +'<div class="member-info"><div class="member-ign">'+esc(m.ign)+'</div><div class="member-role-badge">'+esc(m.role)+(m.realname?' · '+esc(m.realname):'')+'</div></div>'
+      +'<div class="member-actions"><button class="icon-btn" onclick="editMember('+i+')">✏</button><button class="icon-btn del" onclick="deleteMember('+i+')">✕</button></div>'
+      +'</div>';
+  }).join('');
+}
+
+function renderStats() {
+  document.getElementById('s-total').textContent = members.length;
+  document.getElementById('s-owner').textContent = members.filter(m=>m.role==='OWNER').length;
+  document.getElementById('s-staff').textContent = members.filter(m=>m.role==='STAFF').length;
+  document.getElementById('s-comp').textContent  = members.filter(m=>m.role==='競技').length;
+}
+
+function loadSettings() {
+  document.getElementById('s-founded').value = siteSettings.founded||'2024';
+  document.getElementById('s-region').value  = siteSettings.region||'JP';
+  document.getElementById('s-tagline').value = siteSettings.tagline||'';
+}
+function saveSettings() {
+  const f=document.getElementById('s-founded').value.trim();
+  const r=document.getElementById('s-region').value.trim();
+  const t=document.getElementById('s-tagline').value.trim();
+  if(f) siteSettings.founded=f; if(r) siteSettings.region=r; if(t) siteSettings.tagline=t;
+  saveSettingsStore(); showToast('✓ 設定を保存しました');
+}
+
+// ===== EXPORT: index.htmlテンプレートにデータを埋め込んで出力 =====
+function exportSite() {
+  const membersJson = JSON.stringify(members);
+  const settingsJson = JSON.stringify(siteSettings);
+
+  let html = INDEX_TEMPLATE;
+  html = html.replace('/*MEMBERS_DATA*/[]', '/*MEMBERS_DATA*/' + membersJson);
+  html = html.replace('/*SETTINGS_DATA*/{', '/*SETTINGS_DATA*/{' ).replace(/\/\*SETTINGS_DATA\*\/\{[^<]*?\}(?=;)/, '/*SETTINGS_DATA*/' + settingsJson);
+
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download='index.html'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('✓ index.html をダウンロードしました！GitHubにアップしてください');
+}
+
+function esc(s){if(!s)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+
+const INDEX_TEMPLATE = `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LEARN TO WIN | Fortnite Esports Team</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@300;400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0a;
+    --white: #ffffff;
+    --gray-light: #f2f2f2;
+    --gray-mid: #e0e0e0;
+    --gray-dark: #888888;
+    --border: #d0d0d0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--white); color: var(--black); font-family: 'Noto Sans JP', sans-serif; overflow-x: hidden; }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 9999;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    background: rgba(255,255,255,0.92); backdrop-filter: blur(12px);
+    border-bottom: 1.5px solid var(--black);
+    padding: 0 5vw; height: 64px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem;
+    letter-spacing: 0.12em; color: var(--black); text-decoration: none;
+  }
+  .nav-links { display: flex; gap: 2rem; list-style: none; }
+  .nav-links a {
+    text-decoration: none; font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem; letter-spacing: 0.15em; color: var(--black);
+    text-transform: uppercase; position: relative; padding-bottom: 2px;
+  }
+  .nav-links a::after {
+    content: ''; position: absolute; bottom: 0; left: 0;
+    width: 0; height: 1.5px; background: var(--black);
+    transition: width 0.3s cubic-bezier(0.4,0,0.2,1);
+  }
+  .nav-links a:hover::after { width: 100%; }
+
+  /* HERO */
+  #home {
+    min-height: 100vh; display: flex; flex-direction: column;
+    justify-content: center; padding: 100px 5vw 60px;
+    position: relative; overflow: hidden;
+  }
+  .hero-grid-bg {
+    position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px);
+    background-size: 60px 60px; animation: gridDrift 20s linear infinite;
+  }
+  @keyframes gridDrift { 0%{transform:translate(0,0)} 100%{transform:translate(60px,60px)} }
+
+  .hero-tag {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
+    letter-spacing: 0.3em; color: var(--gray-dark); text-transform: uppercase;
+    margin-bottom: 1.5rem; display: flex; align-items: center; gap: 12px;
+    opacity: 0; animation: fadeUp 0.8s 0.2s forwards;
+  }
+  .hero-tag::before { content: ''; display: block; width: 40px; height: 1px; background: var(--gray-dark); }
+
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3rem, 10vw, 10rem);
+    line-height: 0.9; letter-spacing: 0.04em; color: var(--black);
+    position: relative; z-index: 1;
+    opacity: 0; animation: fadeUp 0.8s 0.4s forwards; white-space: nowrap;
+  }
+  .hero-subtitle {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(0.7rem, 1.5vw, 1rem);
+    letter-spacing: 0.25em; color: var(--gray-dark); text-transform: uppercase;
+    margin-top: 2rem; opacity: 0; animation: fadeUp 0.8s 0.6s forwards;
+  }
+  .hero-stats {
+    display: flex; gap: 4rem; margin-top: 4rem;
+    opacity: 0; animation: fadeUp 0.8s 0.8s forwards;
+  }
+  .stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 3.5rem; line-height: 1; }
+  .stat-label { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; letter-spacing: 0.2em; color: var(--gray-dark); text-transform: uppercase; margin-top: 4px; }
+  .hero-cta { margin-top: 3rem; opacity: 0; animation: fadeUp 0.8s 1s forwards; }
+
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 12px;
+    background: var(--black); color: var(--white); text-decoration: none;
+    font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    padding: 16px 36px; border: none; cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+    position: relative; overflow: hidden;
+  }
+  .btn-primary::before {
+    content: ''; position: absolute; inset: 0;
+    background: var(--white); transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  }
+  .btn-primary:hover { color: var(--black); border: 1px solid var(--black); }
+  .btn-primary:hover::before { transform: translateX(0); }
+  .btn-primary span { position: relative; z-index: 1; }
+
+  .hero-marquee {
+    position: absolute; bottom: 40px; left: 0; right: 0;
+    overflow: hidden; border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border); padding: 10px 0; background: var(--white);
+  }
+  .marquee-track {
+    display: flex; gap: 0; white-space: nowrap;
+    animation: marquee 20s linear infinite; width: max-content;
+  }
+  .marquee-item { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 0.2em; padding: 0 3rem; opacity: 0.4; }
+  .marquee-item.accent { opacity: 1; }
+  @keyframes marquee { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+
+  /* SECTION */
+  .section-header {
+    padding: 80px 5vw 60px; border-bottom: 1.5px solid var(--black);
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 2rem;
+  }
+  .section-num { font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; letter-spacing: 0.3em; color: var(--gray-dark); margin-bottom: 8px; }
+  .section-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(3rem, 7vw, 6rem); line-height: 0.9; letter-spacing: 0.02em; }
+  .section-desc { font-family: 'Noto Sans JP', sans-serif; font-size: 0.85rem; color: var(--gray-dark); max-width: 300px; line-height: 1.8; text-align: right; }
+
+  /* MEMBERS */
+  .members-filter {
+    padding: 30px 5vw; display: flex; gap: 12px; flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+  }
+  .filter-btn {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    padding: 8px 20px; border: 1.5px solid var(--black);
+    background: transparent; color: var(--black); cursor: pointer; transition: all 0.2s;
+  }
+  .filter-btn.active, .filter-btn:hover { background: var(--black); color: var(--white); }
+
+  .members-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0; }
+  .member-card {
+    border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    position: relative; overflow: hidden; cursor: pointer;
+    background: var(--white); transition: background 0.3s;
+  }
+  .member-card:hover { background: var(--gray-light); }
+  .member-card-inner { padding: 28px 24px 24px; transform: translateY(0); transition: transform 0.3s cubic-bezier(0.4,0,0.2,1); }
+  .member-card:hover .member-card-inner { transform: translateY(-4px); }
+
+  .member-img-wrap { width: 100%; aspect-ratio: 1/1; overflow: hidden; background: var(--gray-mid); margin-bottom: 16px; position: relative; }
+  .member-img-wrap img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(20%); transition: filter 0.3s, transform 0.5s cubic-bezier(0.4,0,0.2,1); }
+  .member-card:hover .member-img-wrap img { filter: grayscale(0%); transform: scale(1.04); }
+  .member-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: var(--gray-mid); font-family: 'Bebas Neue', sans-serif; font-size: 4rem; color: var(--gray-dark); }
+
+  .member-role { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gray-dark); margin-bottom: 4px; }
+  .member-name { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 0.05em; line-height: 1.1; color: var(--black); margin-bottom: 6px; }
+  .member-real { font-family: 'Noto Sans JP', sans-serif; font-size: 0.72rem; color: var(--gray-dark); margin-bottom: 14px; }
+  .member-x-link {
+    display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+    font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; letter-spacing: 0.1em;
+    color: var(--black); padding: 6px 14px; border: 1px solid var(--black); transition: all 0.2s;
+  }
+  .member-x-link:hover { background: var(--black); color: var(--white); }
+  .member-x-link svg { width: 12px; height: 12px; }
+  .member-num { position: absolute; top: 14px; right: 18px; font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; color: var(--gray-dark); letter-spacing: 0.1em; }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); z-index: 2000; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.active { display: flex; }
+  .modal { background: var(--white); border: 2px solid var(--black); max-width: 520px; width: 100%; position: relative; animation: modalIn 0.3s cubic-bezier(0.4,0,0.2,1); }
+  @keyframes modalIn { from{opacity:0;transform:scale(0.95) translateY(20px)} to{opacity:1;transform:scale(1) translateY(0)} }
+  .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; cursor: pointer; font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; letter-spacing: 0.1em; color: var(--black); display: flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid var(--border); transition: all 0.2s; }
+  .modal-close:hover { background: var(--black); color: var(--white); }
+  .modal-img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; background: var(--gray-mid); }
+  .modal-body { padding: 28px 32px 32px; }
+  .modal-role { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gray-dark); margin-bottom: 6px; }
+  .modal-name { font-family: 'Bebas Neue', sans-serif; font-size: 3rem; letter-spacing: 0.05em; line-height: 1; color: var(--black); margin-bottom: 4px; }
+  .modal-real { font-family: 'Noto Sans JP', sans-serif; font-size: 0.8rem; color: var(--gray-dark); margin-bottom: 16px; }
+  .modal-bio { font-family: 'Noto Sans JP', sans-serif; font-size: 0.82rem; line-height: 1.9; color: #333; margin-bottom: 20px; }
+
+  /* FOOTER */
+  footer { border-top: 1.5px solid var(--black); padding: 60px 5vw 40px; display: flex; justify-content: space-between; align-items: flex-end; gap: 2rem; flex-wrap: wrap; }
+  .footer-logo { font-family: 'Bebas Neue', sans-serif; font-size: 4rem; letter-spacing: 0.05em; line-height: 0.9; }
+  .footer-logo span { display: block; font-size: 1rem; letter-spacing: 0.2em; -webkit-text-stroke: 1px var(--black); color: transparent; }
+  .footer-info { text-align: right; font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; letter-spacing: 0.15em; color: var(--gray-dark); line-height: 2; }
+
+  /* REVEAL */
+  .reveal { opacity: 0; transform: translateY(40px); transition: opacity 0.7s cubic-bezier(0.4,0,0.2,1), transform 0.7s cubic-bezier(0.4,0,0.2,1); }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  .no-members { grid-column: 1/-1; text-align: center; padding: 80px 20px; font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; color: var(--gray-dark); letter-spacing: 0.2em; text-transform: uppercase; }
+
+  @media (max-width: 768px) {
+    .hero-stats { gap: 2rem; flex-wrap: wrap; }
+    .section-header { flex-direction: column; align-items: flex-start; }
+    .section-desc { text-align: left; }
+    footer { flex-direction: column; }
+    .footer-info { text-align: left; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="#home" class="nav-logo">LEARN TO WIN</a>
+  <ul class="nav-links">
+    <li><a href="#home">HOME</a></li>
+    <li><a href="#members">MEMBERS</a></li>
+  </ul>
+</nav>
+
+<section id="home">
+  <div class="hero-grid-bg"></div>
+  <div class="hero-tag">Fortnite Esports Team &bull; Japan</div>
+  <h1 class="hero-title">LEARN TO WIN</h1>
+  <p class="hero-subtitle" id="hero-subtitle">// 勝利を学べ、勝利を掴め — Fortnite Competitive Team</p>
+  <div class="hero-stats">
+    <div class="stat-item">
+      <div class="stat-num" id="stat-members">0</div>
+      <div class="stat-label">メンバー数</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" id="stat-founded">2024</div>
+      <div class="stat-label">設立年</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" id="stat-region">JP</div>
+      <div class="stat-label">拠点</div>
+    </div>
+  </div>
+  <div class="hero-cta">
+    <a href="#members" class="btn-primary"><span>メンバーを見る</span><span>→</span></a>
+  </div>
+  <div class="hero-marquee">
+    <div class="marquee-track">
+      <span class="marquee-item accent">LEARN TO WIN</span>
+      <span class="marquee-item">FORTNITE ESPORTS</span>
+      <span class="marquee-item accent">勝つことを学ぶ</span>
+      <span class="marquee-item">COMPETITIVE TEAM</span>
+      <span class="marquee-item accent">LEARN TO WIN</span>
+      <span class="marquee-item">JAPAN</span>
+      <span class="marquee-item accent">NEVER STOP GRINDING</span>
+      <span class="marquee-item">SEASON 2024</span>
+      <span class="marquee-item accent">LEARN TO WIN</span>
+      <span class="marquee-item">FORTNITE ESPORTS</span>
+      <span class="marquee-item accent">勝つことを学ぶ</span>
+      <span class="marquee-item">COMPETITIVE TEAM</span>
+      <span class="marquee-item accent">LEARN TO WIN</span>
+      <span class="marquee-item">JAPAN</span>
+      <span class="marquee-item accent">NEVER STOP GRINDING</span>
+      <span class="marquee-item">SEASON 2024</span>
+    </div>
+  </div>
+</section>
+
+<section id="members">
+  <div class="section-header reveal">
+    <div>
+      <div class="section-num">// 02</div>
+      <h2 class="section-title">MEMBERS</h2>
+    </div>
+    <p class="section-desc">チームを構成する全メンバー。それぞれが勝利を目指して日々研鑽を積んでいる。</p>
+  </div>
+  <div class="members-filter">
+    <button class="filter-btn active" data-role="all">ALL</button>
+    <button class="filter-btn" data-role="OWNER">OWNER</button>
+    <button class="filter-btn" data-role="STAFF">STAFF</button>
+    <button class="filter-btn" data-role="競技">競技</button>
+    <button class="filter-btn" data-role="育成">育成</button>
+    <button class="filter-btn" data-role="CS">CS</button>
+    <button class="filter-btn" data-role="モバイル">モバイル</button>
+    <button class="filter-btn" data-role="STREAMER">STREAMER</button>
+    <button class="filter-btn" data-role="女子">女子</button>
+    <button class="filter-btn" data-role="DESIGNER">DESIGNER</button>
+    <button class="filter-btn" data-role="EDITOR">EDITOR</button>
+  </div>
+  <div class="members-grid" id="members-grid">
+    <div class="no-members">メンバーがまだ登録されていません。</div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">
+    LEARN TO WIN
+    <span>FORTNITE ESPORTS</span>
+  </div>
+  <div class="footer-info" id="footer-info">
+    LEARN TO WIN © 2024<br>
+    FORTNITE COMPETITIVE TEAM<br>
+    JAPAN<br><br>
+    ALL RIGHTS RESERVED
+  </div>
+</footer>
+
+<!-- MEMBER MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModalBtn()">✕ CLOSE</button>
+    <img src="" alt="" class="modal-img" id="modal-img">
+    <div class="modal-body">
+      <div class="modal-role" id="modal-role"></div>
+      <div class="modal-name" id="modal-name"></div>
+      <div class="modal-real" id="modal-real"></div>
+      <div class="modal-bio" id="modal-bio"></div>
+      <a href="#" target="_blank" class="btn-primary" id="modal-x-link"><span>𝕏 フォローする</span></a>
+    </div>
+  </div>
+</div>
+
+<script>
+let members = /*MEMBERS_DATA*/[];
+let siteSettings = /*SETTINGS_DATA*/{"founded":"2024","region":"JP","tagline":"// 勝利を学べ、勝利を掴め — Fortnite Competitive Team"};
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function applySettings() {
+  document.getElementById('stat-founded').textContent = siteSettings.founded;
+  document.getElementById('stat-region').textContent  = siteSettings.region;
+  document.getElementById('hero-subtitle').textContent = siteSettings.tagline;
+  document.getElementById('footer-info').innerHTML =
+    \`LEARN TO WIN © \${siteSettings.founded}<br>FORTNITE COMPETITIVE TEAM<br>\${siteSettings.region}<br><br>ALL RIGHTS RESERVED\`;
+}
+
+function animateCounter(el, target) {
+  let start = 0;
+  const step = () => {
+    start += Math.ceil((target - start) / 10) || 1;
+    el.textContent = start;
+    if (start < target) requestAnimationFrame(step);
+    else el.textContent = target;
+  };
+  step();
+}
+
+let currentFilter = 'all';
+
+function renderMembers(filter = 'all') {
+  const grid = document.getElementById('members-grid');
+  const filtered = filter === 'all' ? members : members.filter(m => m.role === filter);
+  if (filtered.length === 0) {
+    grid.innerHTML = '<div class="no-members">メンバーがまだ登録されていません。</div>';
+    return;
+  }
+  grid.innerHTML = filtered.map((m, i) => \`
+    <div class="member-card reveal" style="transition-delay:\${(i%10)*0.05}s" onclick="openModal(\${members.indexOf(m)})">
+      <div class="member-card-inner">
+        <div class="member-num">#\${String(members.indexOf(m)+1).padStart(2,'0')}</div>
+        <div class="member-img-wrap">
+          \${m.img ? \`<img src="\${escapeHtml(m.img)}" alt="\${escapeHtml(m.ign)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">\` : ''}
+          <div class="member-placeholder" \${m.img?'style="display:none"':''}>\${escapeHtml(m.ign).charAt(0).toUpperCase()}</div>
+        </div>
+        <div class="member-role">\${escapeHtml(m.role)}</div>
+        <div class="member-name">\${escapeHtml(m.ign)}</div>
+        \${m.realname ? \`<div class="member-real">\${escapeHtml(m.realname)}</div>\` : '<div class="member-real">&nbsp;</div>'}
+        \${m.twitter ? \`<a href="\${escapeHtml(m.twitter)}" target="_blank" class="member-x-link" onclick="event.stopPropagation()">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.259 5.63zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          @\${escapeHtml(m.twitter.replace('https://x.com/','').replace('https://twitter.com/','').replace(/\\/$/,''))}
+        </a>\` : ''}
+      </div>
+    </div>
+  \`).join('');
+  setTimeout(() => {
+    document.querySelectorAll('.reveal').forEach(el => {
+      const obs = new IntersectionObserver(entries => {
+        entries.forEach(e => { if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);} });
+      }, {threshold:0.05});
+      obs.observe(el);
+    });
+  }, 50);
+  animateCounter(document.getElementById('stat-members'), members.length);
+}
+
+function openModal(i) {
+  const m = members[i]; if (!m) return;
+  const img = document.getElementById('modal-img');
+  if (m.img) { img.src = m.img; img.style.display = 'block'; } else { img.style.display = 'none'; }
+  document.getElementById('modal-role').textContent = m.role;
+  document.getElementById('modal-name').textContent = m.ign;
+  document.getElementById('modal-real').textContent = m.realname || '';
+  document.getElementById('modal-bio').textContent  = m.bio || 'プロフィールは未設定です。';
+  const xl = document.getElementById('modal-x-link');
+  if (m.twitter) { xl.href = m.twitter; xl.style.display = 'inline-flex'; } else { xl.style.display = 'none'; }
+  document.getElementById('modal-overlay').classList.add('active');
+}
+function closeModal(e) { if(e.target===document.getElementById('modal-overlay')) document.getElementById('modal-overlay').classList.remove('active'); }
+function closeModalBtn() { document.getElementById('modal-overlay').classList.remove('active'); }
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.role;
+    renderMembers(currentFilter);
+  });
+});
+
+function initReveal() {
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);} });
+  }, {threshold:0.08});
+  document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+}
+
+document.addEventListener('keydown', e => { if(e.key==='Escape') document.getElementById('modal-overlay').classList.remove('active'); });
+
+window.addEventListener('DOMContentLoaded', () => {
+  applySettings();
+  renderMembers();
+  initReveal();
+});
+<\/script>
+</body>
+</html>
+`;
+</script>
+</body>
+</html>
